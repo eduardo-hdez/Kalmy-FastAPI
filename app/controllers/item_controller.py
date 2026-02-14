@@ -1,7 +1,7 @@
 import uuid
 from pymongo import ReturnDocument
 from app.database import items_collection
-from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
+from app.schemas.item import ItemCreate, ItemUpdate
 
 async def create_item(item_data: ItemCreate):
     # Generate unique ID and prepare document
@@ -25,7 +25,7 @@ async def get_all_items():
     return items
 
 async def get_item_by_id(item_id: str):
-    # Retrieve item by id
+    # Retrieve item by UUID
     item = await items_collection.find_one({"id": item_id})
 
     # Remove MongoDB ID from item
@@ -53,3 +53,13 @@ async def update_item(item_id: str, item_data: ItemUpdate):
         updated_item.pop("_id", None)
 
     return updated_item
+
+async def delete_item(item_id: str):
+    # Delete item by ID
+    deleted_item = await items_collection.find_one_and_delete({"id": item_id})
+
+    # Remove MongoDB ID from item
+    if deleted_item:
+        deleted_item.pop("_id", None)
+
+    return deleted_item
