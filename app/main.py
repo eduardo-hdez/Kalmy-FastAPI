@@ -1,13 +1,10 @@
 from fastapi import FastAPI
+from app.routes import items
 
 app = FastAPI()
 
+app.include_router(items.router)
+
 @app.get("/")
-
-def read():
-    return {"Hello" : "World"}
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="localhost", port=8000)
+async def root():
+    return {"message": "Welcome!"}
