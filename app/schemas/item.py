@@ -7,6 +7,13 @@ class ItemCreate(BaseModel):
     price: float = Field(..., gt=0)
     available: bool = True
 
+# Update item validation
+class ItemUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    price: float | None = None
+    available: bool | None = None
+
 # Response validation for GET, POST and PUT methods
 class ItemResponse(BaseModel):
     id: str
