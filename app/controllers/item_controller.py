@@ -1,6 +1,7 @@
 import uuid
+from pymongo import ReturnDocument
 from app.database import items_collection
-from app.schemas.item import ItemCreate, ItemResponse
+from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
 
 async def create_item(item_data: ItemCreate):
     # Generate unique ID and prepare document
@@ -32,3 +33,23 @@ async def get_item_by_id(item_id: str):
         item.pop("_id", None)
 
     return item
+
+async def update_item(item_id: str, item_data: ItemUpdate):
+    item_dict = item_data.dict(exclude_unset=True) # Exclude not sent fields
+
+    # If no fields to update, just return the item
+    if not item_dict:
+        return await get_item_by_id(item_id)
+    
+    # Update item in MongoDB
+    updated_item = await items_collection.find_one_and_update(
+        {"id": item_id},
+        {"$set": item_dict},
+        return_document=ReturnDocument.AFTER
+    )
+
+    # Remove MongoDB ID from item
+    if updated_item:
+        updated_item.pop("_id", None)
+
+    return updated_item
