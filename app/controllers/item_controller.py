@@ -6,7 +6,7 @@ from app.schemas.item import ItemCreate, ItemUpdate
 async def create_item(item_data: ItemCreate):
     # Generate unique ID and prepare document
     item_id = str(uuid.uuid4())
-    item_dict = item_data.dict()
+    item_dict = item_data.model_dump()
     item_dict["id"] = item_id
 
     # Insert into MongoDB
@@ -35,7 +35,7 @@ async def get_item_by_id(item_id: str):
     return item
 
 async def update_item(item_id: str, item_data: ItemUpdate):
-    item_dict = item_data.dict(exclude_unset=True) # Exclude not sent fields
+    item_dict = item_data.model_dump(exclude_unset=True) # Exclude not sent fields
 
     # If no fields to update, just return the item
     if not item_dict:
