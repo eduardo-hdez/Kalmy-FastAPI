@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.controllers import item_controller
 from app.database import get_db
@@ -12,9 +12,9 @@ def create_item(item_data: ItemCreate, db: Session = Depends(get_db)):
     return item_controller.create_item(item_data, db)
 
 @router.get("/", response_model=list[ItemResponse])
-def get_items(db: Session = Depends(get_db)):
+def get_items(skip: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=100), db: Session = Depends(get_db)):
     """Get all items"""
-    return item_controller.get_all_items(db)
+    return item_controller.get_all_items(db, skip=skip, limit=limit)
 
 @router.get("/{item_id}", response_model=ItemResponse)
 def get_item(item_id: str, db: Session = Depends(get_db)):

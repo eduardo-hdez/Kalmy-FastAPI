@@ -10,8 +10,8 @@ def create_item(item_data: ItemCreate, db: Session):
     db.refresh(item)
     return item
 
-def get_all_items(db: Session):
-    return db.query(Item).limit(100).all()
+def get_all_items(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(Item).offset(skip).limit(limit).all()
 
 def get_item_by_id(item_id: str, db: Session):
     return db.query(Item).filter(Item.id == item_id).first()
