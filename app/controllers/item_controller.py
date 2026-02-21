@@ -1,65 +1,40 @@
 import uuid
-from pymongo import ReturnDocument
-from app.database import items_collection
+from sqlalchemy.orm import Session
+from app.models.item import Item
 from app.schemas.item import ItemCreate, ItemUpdate
 
-async def create_item(item_data: ItemCreate):
-    # Generate unique ID and prepare document
-    item_id = str(uuid.uuid4())
-    item_dict = item_data.model_dump()
-    item_dict["id"] = item_id
-
-    # Insert into MongoDB
-    await items_collection.insert_one(item_dict)
-
-    return item_dict
-
-async def get_all_items():
-    # Retrieve all items with limit of 100
-    items = await items_collection.find().to_list(100)
-     
-    # Remove MongoDB ID from each item
-    for item in items:
-        item.pop("_id", None)
-    
-    return items
-
-async def get_item_by_id(item_id: str):
-    # Retrieve item by UUID
-    item = await items_collection.find_one({"id": item_id})
-
-    # Remove MongoDB ID from item
-    if item:
-        item.pop("_id", None)
-
+def create_item(item_data: ItemCreate, db: Session):
+    item = Item(id=str(uuid.uuid4()), **item_data.model_dump())
+    db.add(item)
+    db.commit()
+    db.refresh(item)
     return item
 
-async def update_item(item_id: str, item_data: ItemUpdate):
-    item_dict = item_data.model_dump(exclude_unset=True) # Exclude not sent fields
+def get_all_items(db: Session):
+    return db.query(Item).limit(100).all()
 
-    # If no fields to update, just return the item
-    if not item_dict:
-        return await get_item_by_id(item_id)
-    
-    # Update item in MongoDB
-    updated_item = await items_collection.find_one_and_update(
-        {"id": item_id},
-        {"$set": item_dict},
-        return_document=ReturnDocument.AFTER
-    )
+def get_item_by_id(item_id: str, db: Session):
+    return db.query(Item).filter(Item.id == item_id).first()
 
-    # Remove MongoDB ID from item
-    if updated_item:
-        updated_item.pop("_id", None)
+def update_item(item_id: str, item_data: ItemUpdate, db: Session):
+    item = get_item_by_id(item_id, db)
 
-    return updated_item
+    if not item:
+        return None
 
-async def delete_item(item_id: str):
-    # Delete item by ID
-    deleted_item = await items_collection.find_one_and_delete({"id": item_id})
+    for key, value in item_data.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
 
-    # Remove MongoDB ID from item
-    if deleted_item:
-        deleted_item.pop("_id", None)
+    db.commit()
+    db.refresh(item)
+    return item
 
-    return deleted_item
+def delete_item(item_id: str, db: Session):
+    item = get_item_by_id(item_id, db)
+
+    if not item:
+        return None
+        
+    db.delete(item)
+    db.commit()
+    return item
