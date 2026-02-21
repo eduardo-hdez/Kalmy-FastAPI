@@ -1,22 +1,23 @@
 import os
-from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.server_api import ServerApi
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./items.db")
 
-# MongoDB Configuration
-mongo_uri = os.getenv("MONGO_URI")
-db_name = os.getenv("DB_NAME")
-collection_name = os.getenv("COLLECTION_NAME")
-
-# Initialize async MongoDB client with Stable API for version consistency
-client = AsyncIOMotorClient(
-    mongo_uri,
-    server_api=ServerApi('1'), 
-    tlsAllowInvalidCertificates=True
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False}, 
+    echo=True
 )
 
-# Database and collections references 
-db = client[db_name]
-items_collection = db[collection_name]
+SessionLocal = sessionmaker(bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
