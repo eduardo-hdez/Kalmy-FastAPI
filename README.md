@@ -1,5 +1,7 @@
 # Items API
 
+🎬 [Video demo](https://drive.google.com/file/d/1NhWAI-BtxAcMDf5yS9Ps6ZXO8BeW-qZ_/view?usp=sharing)
+
 API REST construida con FastAPI para la gestión de items. Permite crear, leer, actualizar y eliminar items con validación automática, paginación y documentación interactiva.
 
 ---
