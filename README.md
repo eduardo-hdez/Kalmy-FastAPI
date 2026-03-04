@@ -1,32 +1,32 @@
 # Items API
 
-🎬 [Video demo](https://drive.google.com/file/d/1NhWAI-BtxAcMDf5yS9Ps6ZXO8BeW-qZ_/view?usp=sharing)
+🎬 [Video demo](https://drive.google.com/file/d/1NhWAI-BtxAcMDf5yS9Ps6ZXO8BeW-qZ_/view?usp=sharing) (Spanish)
 
-API REST construida con FastAPI para la gestión de items. Permite crear, leer, actualizar y eliminar items con validación automática, paginación y documentación interactiva.
+REST API built with FastAPI for item management. Allows creating, reading, updating, and deleting items with automatic validation, pagination, and interactive documentation.
 
 ---
 
-## Estructura del proyecto
+## Project structure
 
 ```
-kalmy-fastapi/
+items-fastapi/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                # Pipeline de integración continua
+│       └── ci.yml                # Continuous integration pipeline
 ├── app/
 │   ├── controllers/
-│   │   └── item_controller.py    # Operaciones CRUD
+│   │   └── item_controller.py    # CRUD operations
 │   ├── models/
-│   │   └── item.py               # Modelo de SQLAlchemy
+│   │   └── item.py               # SQLAlchemy model
 │   ├── routes/
-│   │   └── items.py              # Definición de endpoints
+│   │   └── items.py              # Endpoint definitions
 │   ├── schemas/
-│   │   └── item.py               # Esquemas de validación
+│   │   └── item.py               # Validation schemas
 │   ├── database.py
 │   └── main.py
 ├── tests/
-│   ├── conftest.py               # Fixtures y configuración de pruebas
-│   └── test_items.py             # Casos de prueba
+│   ├── conftest.py               # Fixtures and test configuration
+│   └── test_items.py             # Test cases
 ├── .dockerignore
 ├── .gitignore
 ├── Dockerfile
@@ -36,153 +36,153 @@ kalmy-fastapi/
 └── requirements.txt
 ```
 
-El proyecto sigue una arquitectura en capas: las rutas reciben las peticiones HTTP, las delegan a los controladores que contienen la lógica, y estos interactúan con los modelos ORM para acceder a la base de datos. Los esquemas de validación actúan como contrato entre la API y el cliente.
+The project follows a layered architecture: routes receive HTTP requests and delegate them to controllers that contain the business logic, which in turn interact with ORM models to access the database. Validation schemas act as a contract between the API and the client.
 
 ---
 
-## Cómo correr la API
+## How to run the API
 
-### Opción 1: Entorno local
+### Option 1: Local environment
 
-**Requisitos:** Python 3.13
+**Requirements:** Python 3.13
 
-1. Clona el repositorio:
+1. Clone the repository:
 
 ```bash
-git clone https://github.com/eduardo-hdez/Kalmy-FastAPI.git
-cd kalmy-fastapi
+git clone https://github.com/eduardo-hdez/Items-FastAPI
+cd items-fastapi
 ```
 
-2. Instala las dependencias:
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Corre el servidor:
+3. Run the server:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-La API estará disponible en `http://localhost:8000`.
+The API will be available at `http://localhost:8000`.
 
-### Opción 2: Docker Compose (RECOMENDADA)
+### Option 2: Docker Compose (RECOMMENDED)
 
-**Requisitos:** Docker y Docker Compose instalados.
+**Requirements:** Docker and Docker Compose installed.
 
 ```bash
 docker compose up --build
 ```
 
-La API estará disponible en `http://localhost:8000`.
+The API will be available at `http://localhost:8000`.
 
-La base de datos se persiste en el volumen `db-data`, por lo que los datos sobreviven a reinicios del contenedor.
+The database is persisted in the `db-data` volume, so data survives container restarts.
 
-Para detener y eliminar completamente los contenedores, redes y volúmenes:
+To stop and completely remove containers, networks, and volumes:
 
 ```bash
 docker compose down -v --rmi all
 ```
 
-### Variables de entorno
+### Environment variables
 
-| Variable       | Valor por defecto      | Descripción                        |
-| -------------- | ---------------------- | ---------------------------------- |
-| `DATABASE_URL` | `sqlite:///./items.db` | URL de conexión a la base de datos |
+| Variable       | Default value          | Description             |
+| -------------- | ---------------------- | ----------------------- |
+| `DATABASE_URL` | `sqlite:///./items.db` | Database connection URL |
 
-Con Docker Compose, `DATABASE_URL` apunta a `sqlite:///./data/items.db` dentro del volumen persistente.
+With Docker Compose, `DATABASE_URL` points to `sqlite:///./data/items.db` inside the persistent volume.
 
 ---
 
-## Decisiones tecnológicas
+## Technology decisions
 
 ### Pydantic v2
 
-Se usa Pydantic para la validación declarativa de todos los datos de entrada y salida. Los esquemas definen constraints directamente en los campos (`max_length=128` en nombres, `max_length=256` en descripciones, `gt=0` en precios, campos opcionales con `None`). En las actualizaciones parciales, `model_dump(exclude_unset=True)` garantiza que solo se modifiquen los campos enviados por el cliente, evitando sobrescrituras accidentales.
+Pydantic is used for declarative validation of all input and output data. Schemas define constraints directly on the fields (`max_length=128` for names, `max_length=256` for descriptions, `gt=0` for prices, optional fields with `None`). For partial updates, `model_dump(exclude_unset=True)` ensures that only the fields sent by the client are modified, avoiding accidental overwrites.
 
 ### SQLAlchemy 2.0 + SQLite
 
-Inicialmente el proyecto usaba MongoDB con Motor (el cliente async oficial). Durante el desarrollo de los tests surgieron dos problemas que resultaron irresolubles:
+Initially the project used MongoDB with Motor (the official async client). During test development, two problems arose that proved irresolvable:
 
-1. **`Event loop is closed`**: pytest no mantiene un event loop activo entre tests por defecto. Cada fixture async requería manejo explícito del loop, generando errores intermitentes difíciles de reproducir.
-2. **Una sola request activa por archivo**: `AsyncIOMotorClient` en modo de pruebas forzaba a serializar las operaciones, haciendo imposible tener múltiples fixtures independientes dentro del mismo archivo de tests.
+1. **`Event loop is closed`**: pytest does not maintain an active event loop between tests by default. Each async fixture required explicit loop management, generating intermittent errors that were hard to reproduce.
+2. **Single active request per file**: `AsyncIOMotorClient` in test mode forced operations to be serialized, making it impossible to have multiple independent fixtures within the same test file.
 
-El cambio a SQLite con SQLAlchemy síncrono eliminó ambos problemas de raíz: no hay event loop que gestionar, las sesiones son objetos Python ordinarios y el aislamiento entre tests se logra simplemente creando y destruyendo las tablas. Se usa la API moderna de SQLAlchemy 2.0 (`Mapped`, `mapped_column`) y el flag `check_same_thread=False` requerido por SQLite para permitir su uso con el sistema de dependencias de FastAPI.
+Switching to SQLite with synchronous SQLAlchemy eliminated both problems at the root: there is no event loop to manage, sessions are ordinary Python objects, and test isolation is achieved simply by creating and dropping tables. The modern SQLAlchemy 2.0 API is used (`Mapped`, `mapped_column`) along with the `check_same_thread=False` flag required by SQLite to allow its use with FastAPI's dependency injection system.
 
 ### pytest + TestClient
 
-Los tests usan `TestClient`, que levanta la aplicación sin necesidad de correr un servidor real. La configuración en `conftest.py` define dos fixtures clave:
+Tests use `TestClient`, which runs the application without needing to start a real server. The configuration in `conftest.py` defines two key fixtures:
 
-- `setup_test_db` (`autouse=True`): crea todas las tablas antes de cada test y las destruye al terminar, garantizando que cada prueba parte de una base de datos limpia e independiente.
-- `override_get_db`: reemplaza la dependencia `get_db` con una sesión que apunta a `test.db`, de modo que los tests nunca tocan la base de datos de desarrollo.
+- `setup_test_db` (`autouse=True`): creates all tables before each test and drops them when done, ensuring each test starts with a clean, independent database.
+- `override_get_db`: replaces the `get_db` dependency with a session pointing to `test.db`, so tests never touch the development database.
 
-### UUID como identificador de items
+### UUID as item identifier
 
-El campo `id` de cada item se genera automáticamente como un UUID v4 (`uuid.uuid4()`) al momento de la creación, sin necesidad de que el cliente lo provea. Se almacena como `String` en la base de datos y se expone como cadena de texto en la API. Esto garantiza identificadores únicos globalmente y evita colisiones en entornos distribuidos.
+The `id` field of each item is automatically generated as a UUID v4 (`uuid.uuid4()`) at creation time, with no need for the client to provide it. It is stored as a `String` in the database and exposed as a string in the API. This guarantees globally unique identifiers and avoids collisions in distributed environments.
 
-### Docker y Docker Compose
+### Docker and Docker Compose
 
-La imagen está basada en `python:3.13-slim` para mantener un tamaño reducido. Docker Compose define un volumen nombrado (`db-data`) montado en `/app/data`, donde reside la base de datos SQLite en producción. Esto garantiza que los datos persistan entre reinicios del contenedor y que el proyecto pueda ejecutarse en cualquier entorno sin instalar Python ni dependencias manualmente.
+The image is based on `python:3.13-slim` to keep the size small. Docker Compose defines a named volume (`db-data`) mounted at `/app/data`, where the SQLite database resides in production. This ensures data persists between container restarts and that the project can run in any environment without manually installing Python or dependencies.
 
 ### GitHub Actions (CI)
 
-El pipeline en `.github/workflows/ci.yml` se ejecuta automáticamente en cada push y pull request hacia la rama `main`. Los pasos son: checkout del código, instalación de Python 3.13, instalación de dependencias desde `requirements.txt` y ejecución de `pytest`. Esto asegura que ningún cambio pueda fusionarse sin pasar todos los tests.
+The pipeline in `.github/workflows/ci.yml` runs automatically on every push and pull request to the `main` branch. The steps are: checkout the code, install Python 3.13, install dependencies from `requirements.txt`, and run `pytest`. This ensures no change can be merged without passing all tests.
 
 ---
 
-## Cómo probar los endpoints
+## How to test the endpoints
 
-### Documentación
+### Documentation
 
-Al iniciar la aplicación, la ruta raíz `/` redirige automáticamente a `/docs`, por lo que basta con abrir `http://localhost:8000` en el navegador para acceder a la documentación sin necesidad de recordar ninguna ruta adicional.
+When starting the application, the root route `/` automatically redirects to `/docs`, so simply opening `http://localhost:8000` in the browser is enough to access the documentation without needing to remember any additional route.
 
-### Endpoints disponibles
+### Available endpoints
 
-| Método   | Ruta          | Descripción                             |
-| -------- | ------------- | --------------------------------------- |
-| `POST`   | `/items/`     | Crear un nuevo item                     |
-| `GET`    | `/items/`     | Obtener lista de items (con paginación) |
-| `GET`    | `/items/{id}` | Obtener un item por ID                  |
-| `PUT`    | `/items/{id}` | Actualizar un item existente            |
-| `DELETE` | `/items/{id}` | Eliminar un item                        |
+| Method   | Route         | Description                         |
+| -------- | ------------- | ----------------------------------- |
+| `POST`   | `/items/`     | Create a new item                   |
+| `GET`    | `/items/`     | Get list of items (with pagination) |
+| `GET`    | `/items/{id}` | Get an item by ID                   |
+| `PUT`    | `/items/{id}` | Update an existing item             |
+| `DELETE` | `/items/{id}` | Delete an item                      |
 
-### Paginación
+### Pagination
 
-El endpoint `GET /items/` acepta los parámetros de query `skip` y `limit`:
+The `GET /items/` endpoint accepts `skip` and `limit` query parameters:
 
 ```
 GET /items/?skip=0&limit=10
 ```
 
-| Parámetro | Tipo   | Valor por defecto | Restricciones |
-| --------- | ------ | ----------------- | ------------- |
-| `skip`    | entero | `0`               | >= 0          |
-| `limit`   | entero | `10`              | >= 1, <= 100  |
+| Parameter | Type    | Default value | Constraints  |
+| --------- | ------- | ------------- | ------------ |
+| `skip`    | integer | `0`           | >= 0         |
+| `limit`   | integer | `10`          | >= 1, <= 100 |
 
-### Ejecutar los tests
+### Running tests
 
 ```bash
 pytest
 ```
 
-Para ver el detalle de cada caso:
+To see the detail of each case:
 
 ```bash
 pytest -v
 ```
 
-### Casos de prueba existentes
+### Existing test cases
 
-| Test                            | Descripción                                                     |
-| ------------------------------- | --------------------------------------------------------------- |
-| `test_create_item`              | Crea un item y verifica que retorne 201 con los datos correctos |
-| `test_get_all_items`            | Verifica que la lista de items retorne 200 y contenga elementos |
-| `test_get_item_by_id`           | Crea un item y lo recupera por su ID                            |
-| `test_get_item_by_id_not_found` | Verifica que un ID inexistente retorne 404                      |
-| `test_update_item`              | Actualiza precio y disponibilidad de un item existente          |
-| `test_update_item_not_found`    | Verifica que actualizar un ID inexistente retorne 404           |
-| `test_delete_item`              | Elimina un item y confirma que ya no existe con un GET          |
-| `test_delete_item_not_found`    | Verifica que eliminar un ID inexistente retorne 404             |
+| Test                            | Description                                                       |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `test_create_item`              | Creates an item and verifies it returns 201 with the correct data |
+| `test_get_all_items`            | Verifies the item list returns 200 and contains elements          |
+| `test_get_item_by_id`           | Creates an item and retrieves it by its ID                        |
+| `test_get_item_by_id_not_found` | Verifies that a non-existent ID returns 404                       |
+| `test_update_item`              | Updates the price and availability of an existing item            |
+| `test_update_item_not_found`    | Verifies that updating a non-existent ID returns 404              |
+| `test_delete_item`              | Deletes an item and confirms it no longer exists with a GET       |
+| `test_delete_item_not_found`    | Verifies that deleting a non-existent ID returns 404              |
 
-Cada test opera sobre una base de datos limpia gracias al fixture `setup_test_db`, por lo que son completamente independientes entre sí y pueden ejecutarse en cualquier orden.
+Each test operates on a clean database thanks to the `setup_test_db` fixture, so they are completely independent and can run in any order.
